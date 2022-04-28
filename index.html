@@ -1,15 +1,24 @@
 <!DOCTYPE html>
 <head>
-<style>
-  .statusbar {
-    border: 1px solid silver;
-  }
-  .bar {
-    background-color:coral;
-    height: 1em;
-    width: 0%;
-  }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width initial-scale=1">
+  <title>IF Tracker</title>
+  <style>
+    .statusbar {
+      border: 1px solid silver;
+    }
+    .bar {
+      background-color:coral;
+      height: 1em;
+      width: 0%;
+    }
+    #log {
+      width:100%;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
 </head>
 <body>
   <div class="statusbar">
@@ -20,9 +29,9 @@
   <button id="logEvent">Log now</button>
   <br/>
   <ol id="loglist"></ol>
-  <textarea id="log" rows="10" cols="80"></textarea>
-  <script src="script.js"></script>
+  <textarea id="log" rows="10"></textarea>
   <br/>
   <button id="backup" disabled>Backup</button>
   <button id="restore" disabled>Restore</button>
+  <script src="script.js"></script>
 </body>

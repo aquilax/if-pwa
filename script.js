@@ -5,14 +5,17 @@ const FASTING_INDEX = 0;
 const EATING_INDEX = 1;
 const HOUR = 3600 * 1000;
 const fastInterval = [16, 8]; // fast, eat
-const log = [
-    { ts: 0, start: EATING },
-    { ts: 10, start: FASTING },
-];
 const getNow = () => new Date().getTime();
 ;
 const fEvent = (ts, start) => ({ ts, start });
 const twoDigitPad = (num) => num < 10 ? "0" + num : num;
+const getTime = (ts) => {
+    const date = new Date(ts);
+    const hour = date.getHours();
+    const minute = date.getMinutes();
+    const second = date.getSeconds();
+    return `${twoDigitPad(hour)}:${twoDigitPad(minute)}:${twoDigitPad(second)}`;
+};
 const formatTs = (ts) => {
     const date = new Date(ts);
     const day = date.getDate();
@@ -164,7 +167,27 @@ class App {
             this.updateProgress(); // manual update after load
             this.$status.innerText = `Next: ${formatEvent(targetEvent)}`;
         }
-        this.$logList.innerHTML = log.map(fEvent => `<li><time>${formatTs(fEvent.ts)}<time> Started ${fEvent.start} <button class="delete" disabled>✖</span></button><button class="edit" disabled>✎</span></button>`).join("\n");
+        this.$logList.innerHTML = log.map(fEvent => `<li>
+        <time>${formatTs(fEvent.ts)}</time>
+        Started ${fEvent.start}
+        <span class="control">
+          <button class="edit">✎</button>
+          <button class="delete">✖</button>
+        <span>
+        <div class="editEvent hidden">
+          <label>
+            Edit time:
+            <input type="time" value="${getTime(fEvent.ts)}" />
+          </label>
+          <button class="editConfirm">✓</button>
+          <button class="editCancel">✖</button>
+        </div>
+        <div class="deleteEvent hidden">
+          Are you sure you want to delete this event?
+          <button class="deleteConfirm">✓</button>
+          <button class="deleteCancel">✖</button>
+        </div>
+      </li>`).join("\n");
     }
     async run() {
         const log = await this.storage.load();
