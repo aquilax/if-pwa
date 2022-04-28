@@ -21,6 +21,20 @@ const log = [
 
 const getNow = (): Timestamp => new Date().getTime();;
 const fEvent = (ts: Timestamp, start: State): FEvent => ({ ts, start });
+const twoDigitPad = (num: number) => num < 10 ? "0" + num : num;
+
+const formatTs = (ts: Timestamp): string => {
+  const date = new Date(ts);
+
+  const day = date.getDate();
+  const month = date.getMonth();
+  const year = date.getFullYear();
+  const hour = date.getHours();
+  const minute = date.getMinutes();
+  const second = date.getSeconds();
+
+  return `${year}-${twoDigitPad(month)}-${twoDigitPad(day)} ${twoDigitPad(hour)}:${twoDigitPad(minute)}:${twoDigitPad(second)}`
+}
 
 /**
  * Returns the last event before the now timestamp or null
@@ -68,7 +82,7 @@ const getTargetEvent = (log: FEventLog, now: Timestamp): FEvent | null => {
 };
 
 
-const formatEvent = (e: FEvent): string => `${new Date(e.ts).toISOString()}\t${e.start}`;
+const formatEvent = (e: FEvent): string => `${formatTs(e.ts)}\t${e.start}`;
 const formatLog = (log: FEventLog): string =>log.map(formatEvent).join("\n");
 
 interface LogStorage {
@@ -130,6 +144,7 @@ class App {
   $logEvent: HTMLButtonElement;
   $status: HTMLDivElement;
   $progress: HTMLDivElement;
+  $logList: HTMLOListElement
   updateInterval: number
 
   constructor(storage: LogStorage, global: Window) {
@@ -145,6 +160,7 @@ class App {
     });
     this.$status = global.document.querySelector<HTMLDivElement>("#status")!;
     this.$progress = global.document.querySelector<HTMLDivElement>("#progress")!;
+    this.$logList = global.document.querySelector<HTMLOListElement>("#loglist")!;
     this.updateProgress = this.updateProgress.bind(this);
     this.updateInterval = setInterval(this.updateProgress, 10000);
   }
@@ -181,8 +197,9 @@ class App {
     this.targetEvent = targetEvent;
     if (targetEvent) {
       this.updateProgress(); // manual update after load
-      this.$status.innerText = formatEvent(targetEvent);
+      this.$status.innerText = `Next: ${formatEvent(targetEvent)}`;
     }
+    this.$logList.innerHTML = log.map(fEvent => `<li><time>${formatTs(fEvent.ts)}<time> Started ${fEvent.start} <button class="delete" disabled>✖</span></button><button class="edit" disabled>✎</span></button>`).join("\n")
   }
 
   async run() {

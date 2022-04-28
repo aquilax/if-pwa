@@ -12,6 +12,17 @@ const log = [
 const getNow = () => new Date().getTime();
 ;
 const fEvent = (ts, start) => ({ ts, start });
+const twoDigitPad = (num) => num < 10 ? "0" + num : num;
+const formatTs = (ts) => {
+    const date = new Date(ts);
+    const day = date.getDate();
+    const month = date.getMonth();
+    const year = date.getFullYear();
+    const hour = date.getHours();
+    const minute = date.getMinutes();
+    const second = date.getSeconds();
+    return `${year}-${twoDigitPad(month)}-${twoDigitPad(day)} ${twoDigitPad(hour)}:${twoDigitPad(minute)}:${twoDigitPad(second)}`;
+};
 /**
  * Returns the last event before the now timestamp or null
  * Expects log to be sorted in chronological order
@@ -55,7 +66,7 @@ const getTargetEvent = (log, now) => {
     }
     return null;
 };
-const formatEvent = (e) => `${new Date(e.ts).toISOString()}\t${e.start}`;
+const formatEvent = (e) => `${formatTs(e.ts)}\t${e.start}`;
 const formatLog = (log) => log.map(formatEvent).join("\n");
 class MemoryStorage {
     constructor() {
@@ -116,6 +127,7 @@ class App {
         });
         this.$status = global.document.querySelector("#status");
         this.$progress = global.document.querySelector("#progress");
+        this.$logList = global.document.querySelector("#loglist");
         this.updateProgress = this.updateProgress.bind(this);
         this.updateInterval = setInterval(this.updateProgress, 10000);
     }
@@ -150,8 +162,9 @@ class App {
         this.targetEvent = targetEvent;
         if (targetEvent) {
             this.updateProgress(); // manual update after load
-            this.$status.innerText = formatEvent(targetEvent);
+            this.$status.innerText = `Next: ${formatEvent(targetEvent)}`;
         }
+        this.$logList.innerHTML = log.map(fEvent => `<li><time>${formatTs(fEvent.ts)}<time> Started ${fEvent.start} <button class="delete" disabled>✖</span></button><button class="edit" disabled>✎</span></button>`).join("\n");
     }
     async run() {
         const log = await this.storage.load();
