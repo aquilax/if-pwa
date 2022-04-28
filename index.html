@@ -1,11 +1,26 @@
 <!DOCTYPE html>
 <head>
+<style>
+  .statusbar {
+    border: 1px solid silver;
+  }
+  .bar {
+    background-color:coral;
+    height: 1em;
+    width: 0%;
+  }
+</style>
 </head>
 <body>
-  <textarea id="log" rows="10" cols="80"></textarea>
+  <div class="statusbar">
+    <div id="progress" class="bar"></div>
+  </div>
+  <div id="status"></div>
   <br/>
   <button id="logEvent">Log now</button>
+  <button id="backup">Backup</button>
+  <button id="restore">Restore</button>
   <br/>
-  <div id="status"></div>
+  <textarea id="log" rows="10" cols="80"></textarea>
   <script src="script.js"></script>
 </body>

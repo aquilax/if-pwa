@@ -68,7 +68,7 @@ const getTargetEvent = (log: FEventLog, now: Timestamp): FEvent | null => {
 };
 
 
-const formatEvent = (e: FEvent): string => `${new Date(e.ts)}\t${e.start}`;
+const formatEvent = (e: FEvent): string => `${new Date(e.ts).toISOString()}\t${e.start}`;
 const formatLog = (log: FEventLog): string =>log.map(formatEvent).join("\n");
 
 interface LogStorage {
@@ -89,12 +89,48 @@ class MemoryStorage implements LogStorage {
   }
 }
 
+class IndexDBStorage implements LogStorage {
+  dbName = 'log';
+  dbVersion = 1;
+
+  load(): Promise<FEventLog> {
+    return Promise.reject('not implemented');
+  }
+  update(log: FEventLog): Promise<void> {
+    return Promise.reject('not implemented');
+  }
+}
+
+class LocalStorageStorage implements LogStorage {
+  key = 'log';
+
+  load(): Promise<FEventLog> {
+    const content = localStorage.getItem(this.key);
+    if (content) {
+      const log = JSON.parse(content);
+      if (log) {
+        return Promise.resolve(log)
+      }
+    }
+    return Promise.resolve([]);
+  }
+
+  update(log: FEventLog): Promise<void> {
+    const content = JSON.stringify(log);
+    localStorage.setItem(this.key, content);
+    return Promise.resolve();
+  }
+}
+
 class App {
+  targetEvent: FEvent | null = null;
   storage: LogStorage;
   global: Window;
   $log: HTMLTextAreaElement;
   $logEvent: HTMLButtonElement;
   $status: HTMLDivElement;
+  $progress: HTMLDivElement;
+  updateInterval: number
 
   constructor(storage: LogStorage, global: Window) {
     this.storage = storage;
@@ -108,6 +144,9 @@ class App {
       this.onLogEvent(ts);
     });
     this.$status = global.document.querySelector<HTMLDivElement>("#status")!;
+    this.$progress = global.document.querySelector<HTMLDivElement>("#progress")!;
+    this.updateProgress = this.updateProgress.bind(this);
+    this.updateInterval = setInterval(this.updateProgress, 10000);
   }
 
   async onLogEvent(ts: Timestamp): Promise<void> {
@@ -123,10 +162,25 @@ class App {
     this.render(log);
   }
 
+  updateProgress():void {
+    const now = getNow();
+    if (this.targetEvent) {
+      const msLeft = this.targetEvent.ts - now;
+      const hourIndex = this.targetEvent.start === EATING ? FASTING_INDEX : EATING_INDEX;
+      const msTotal = fastInterval[hourIndex] * HOUR
+      const x = 100 - Math.floor(msLeft/(msTotal/100));
+      const percent = x > 100 ? 100 : x
+      this.$progress.style.width = `${percent}%`;
+      this.$progress.setAttribute('title', `${(msLeft / HOUR).toFixed(2)} hours left`)
+    }
+  }
+
   render(log:FEventLog, ts: Timestamp = getNow()): void {
     this.$log.value = formatLog(log);
     const targetEvent = getTargetEvent(log, ts);
+    this.targetEvent = targetEvent;
     if (targetEvent) {
+      this.updateProgress(); // manual update after load
       this.$status.innerText = formatEvent(targetEvent);
     }
   }
@@ -137,4 +191,4 @@ class App {
   }
 }
 
-new App(new MemoryStorage(), window).run();
+new App(new LocalStorageStorage(), window).run();
