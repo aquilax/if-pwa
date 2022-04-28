@@ -1,14 +1,16 @@
 "use strict";
-const EATING = 'eating';
-const FASTING = 'fasting';
+const EATING = "eating";
+const FASTING = "fasting";
 const FASTING_INDEX = 0;
 const EATING_INDEX = 1;
+const HOUR = 3600 * 1000;
 const fastInterval = [16, 8]; // fast, eat
 const log = [
     { ts: 0, start: EATING },
     { ts: 10, start: FASTING },
 ];
-const getNow = () => Date.now();
+const getNow = () => new Date().getTime();
+;
 const fEvent = (ts, start) => ({ ts, start });
 /**
  * Returns the last event before the now timestamp or null
@@ -43,17 +45,18 @@ const getState = (log, now) => {
 /**
  * Returns the next FEvent given timestamp `now` and ordered `log`
  */
-const getTargetTime = (log, now) => {
+const getTargetEvent = (log, now) => {
     const lastEvent = findLastEvent(log, now);
     if (lastEvent) {
         if (lastEvent.start === FASTING) {
-            return fEvent(lastEvent.ts + fastInterval[FASTING_INDEX], EATING);
+            return fEvent(lastEvent.ts + fastInterval[FASTING_INDEX] * HOUR, EATING);
         }
-        return fEvent(lastEvent.ts + fastInterval[EATING_INDEX], FASTING);
+        return fEvent(lastEvent.ts + fastInterval[EATING_INDEX] * HOUR, FASTING);
     }
     return null;
 };
-const formatLog = (log) => log.map((e) => `${e.ts}\t${e.start}`).join('\n');
+const formatEvent = (e) => `${new Date(e.ts)}\t${e.start}`;
+const formatLog = (log) => log.map(formatEvent).join("\n");
 class MemoryStorage {
     constructor() {
         this.storage = [];
@@ -70,11 +73,39 @@ class App {
     constructor(storage, global) {
         this.storage = storage;
         this.global = global;
-        this.$log = global.document.querySelector('#log');
+        this.$log = global.document.querySelector("#log");
+        this.$logEvent =
+            global.document.querySelector("#logEvent");
+        this.$logEvent.addEventListener("click", (e) => {
+            e.preventDefault();
+            const ts = getNow();
+            this.onLogEvent(ts);
+        });
+        this.$status = global.document.querySelector("#status");
+    }
+    async onLogEvent(ts) {
+        const log = await this.storage.load();
+        const lastEvent = findLastEvent(log, ts);
+        if (lastEvent) {
+            const newStart = lastEvent.start == FASTING ? EATING : FASTING;
+            log.push(fEvent(ts, newStart));
+        }
+        else {
+            log.push(fEvent(ts, FASTING));
+        }
+        await this.storage.update(log);
+        this.render(log);
+    }
+    render(log, ts = getNow()) {
+        this.$log.value = formatLog(log);
+        const targetEvent = getTargetEvent(log, ts);
+        if (targetEvent) {
+            this.$status.innerText = formatEvent(targetEvent);
+        }
     }
     async run() {
         const log = await this.storage.load();
-        this.$log.value = formatLog(log);
+        this.render(log);
     }
 }
 new App(new MemoryStorage(), window).run();
