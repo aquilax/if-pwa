@@ -8,6 +8,14 @@
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon_192.png">
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    .wrapper {
+      margin: 1em;
+    }
     .statusbar {
       border: 1px solid silver;
     }
@@ -22,21 +30,26 @@
     .hidden {
       display: none;
     }
+    #logList{
+      list-style: none;
+    }
   </style>
 </head>
 <body>
-  <div class="statusbar">
-    <div id="progress" class="bar"></div>
+  <div class="wrapper">
+    <div class="statusbar">
+      <div id="progress" class="bar"></div>
+    </div>
+    <div id="status"></div>
+    <br/>
+    <button id="logEvent">Log now</button>
+    <br/>
+    <ol id="logList"></ol>
+    <textarea id="log" rows="10"></textarea>
+    <br/>
+    <button id="backup">Backup</button>
+    <button id="restore" disabled>Restore</button>
   </div>
-  <div id="status"></div>
-  <br/>
-  <button id="logEvent">Log now</button>
-  <br/>
-  <ol id="loglist"></ol>
-  <textarea id="log" rows="10"></textarea>
-  <br/>
-  <button id="backup">Backup</button>
-  <button id="restore" disabled>Restore</button>
   <script src="script.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
@@ -44,6 +57,29 @@
         navigator.serviceWorker.register('/sw.js');
       });
     }
-    </script>
+  </script>
+  <template id="logEntry">
+    <li class="entry" data-ts="">
+      <time></time>
+      <span class="message"></span>
+      <span class="control">
+        <button class="edit" aria-label="Edit" title="Edit">✎</button>
+        <button class="delete" aria-label="Delete" title="Delete" disabled>✖</button>
+      <span>
+      <div class="editEvent hidden">
+        <label>
+          Edit time:
+          <input class="timeEdit" type="datetime-local" value="" />
+        </label>
+        <button class="editConfirm" aria-label="Confirm" title="Confirm">✓</button>
+        <button class="editCancel" aria-label="Cancel" title="Cancel">✖</button>
+      </div>
+      <div class="deleteEvent hidden">
+        Are you sure you want to delete this event?
+        <button class="deleteConfirm" aria-label="Confirm" title="Confirm">✓</button>
+        <button class="deleteCancel" aria-label="Cancel" title="Cancel">✖</button>
+      </div>
+    </li>
+  </template>
 </body>
 </html>

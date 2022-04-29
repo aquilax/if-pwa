@@ -10,6 +10,7 @@ const EATING: State = "eating";
 const FASTING: State = "fasting";
 const FASTING_INDEX = 0;
 const EATING_INDEX = 1;
+const ENTRIES_TO_SHOW = 10;
 const HOUR = 3600 * 1000;
 
 const fastInterval = [16, 8]; // fast, eat
@@ -90,6 +91,15 @@ const getTargetEvent = (log: FEventLog, now: Timestamp): FEvent | null => {
 };
 
 
+const getLogEntry = (template: HTMLTemplateElement, fEvent: FEvent): Element => {
+  var clone = template.content.cloneNode(true) as HTMLElement;
+  (clone.querySelector('.entry') as HTMLElement).dataset.ts = fEvent.ts.toString(10);
+  (clone.querySelector('time') as HTMLElement).innerText = formatTs(fEvent.ts);
+  (clone.querySelector('.message') as HTMLElement).innerText = `Started ${fEvent.start}`;
+  (clone.querySelector('.timeEdit') as HTMLInputElement).value = `Started ${getLocaleDateTime(fEvent.ts)}`;
+  return clone
+}
+
 const formatEvent = (e: FEvent): string => `${formatTs(e.ts)}\t${e.start}`;
 const formatLog = (log: FEventLog): string =>log.map(formatEvent).join("\n");
 
@@ -118,7 +128,7 @@ class IndexDBStorage implements LogStorage {
   load(): Promise<FEventLog> {
     return Promise.reject('not implemented');
   }
-  update(log: FEventLog): Promise<void> {
+  update(_log: FEventLog): Promise<void> {
     return Promise.reject('not implemented');
   }
 }
@@ -152,6 +162,7 @@ class App {
   $status: HTMLDivElement;
   $progress: HTMLDivElement;
   $logList: HTMLOListElement
+  $entryTemplate: HTMLTemplateElement;
   updateInterval: number
 
   constructor(storage: LogStorage, global: Window) {
@@ -160,7 +171,8 @@ class App {
     this.$log = global.document.querySelector<HTMLTextAreaElement>("#log")!;
     this.$status = global.document.querySelector<HTMLDivElement>("#status")!;
     this.$progress = global.document.querySelector<HTMLDivElement>("#progress")!;
-    this.$logList = global.document.querySelector<HTMLOListElement>("#loglist")!;
+    this.$logList = global.document.querySelector<HTMLOListElement>("#logList")!;
+    this.$entryTemplate = global.document.querySelector<HTMLTemplateElement>("#logEntry")!;
     this.updateProgress = this.updateProgress.bind(this);
 
     // start update timer
@@ -258,28 +270,33 @@ class App {
       this.updateProgress(); // manual update after load
       this.$status.innerText = `Next: ${formatEvent(targetEvent)}`;
     }
-    this.$logList.innerHTML = log.reverse().map(fEvent =>
-      `<li class="entry" data-ts="${fEvent.ts}">
-        <time>${formatTs(fEvent.ts)}</time>
-        Started ${fEvent.start}
-        <span class="control">
-          <button class="edit">✎</button>
-          <button class="delete" disabled>✖</button>
-        <span>
-        <div class="editEvent hidden">
-          <label>
-            Edit time:
-            <input class="timeEdit" type="datetime-local" value="${getLocaleDateTime(fEvent.ts)}" />
-          </label>
-          <button class="editConfirm">✓</button>
-          <button class="editCancel">✖</button>
-        </div>
-        <div class="deleteEvent hidden">
-          Are you sure you want to delete this event?
-          <button class="deleteConfirm">✓</button>
-          <button class="deleteCancel">✖</button>
-        </div>
-      </li>`).join("\n")
+    this.$logList.replaceChildren(); // clean all children
+    log.slice(-ENTRIES_TO_SHOW).reverse().forEach(fEvent => {
+      this.$logList.appendChild(getLogEntry(this.$entryTemplate, fEvent));
+    })
+
+    // this.$logList.innerHTML = log.slice(-ENTRIES_TO_SHOW).reverse().map(fEvent =>
+    //   `<li class="entry" data-ts="${fEvent.ts}">
+    //     <time>${formatTs(fEvent.ts)}</time>
+    //     <span class="message">Started ${fEvent.start}</span>
+    //     <span class="control">
+    //       <button class="edit">✎</button>
+    //       <button class="delete" disabled>✖</button>
+    //     <span>
+    //     <div class="editEvent hidden">
+    //       <label>
+    //         Edit time:
+    //         <input class="timeEdit" type="datetime-local" value="${getLocaleDateTime(fEvent.ts)}" />
+    //       </label>
+    //       <button class="editConfirm">✓</button>
+    //       <button class="editCancel">✖</button>
+    //     </div>
+    //     <div class="deleteEvent hidden">
+    //       Are you sure you want to delete this event?
+    //       <button class="deleteConfirm">✓</button>
+    //       <button class="deleteCancel">✖</button>
+    //     </div>
+    //   </li>`).join("\n")
   }
 
   async run() {
