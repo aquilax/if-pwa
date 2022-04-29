@@ -37,7 +37,7 @@ const formatTs = (ts: Timestamp): string => {
   const minute = date.getMinutes();
   const second = date.getSeconds();
 
-  return `${year}-${twoDigitPad(month)}-${twoDigitPad(day)} ${twoDigitPad(hour)}:${twoDigitPad(minute)}:${twoDigitPad(second)}`
+  return `${year}-${twoDigitPad(month+1)}-${twoDigitPad(day)} ${twoDigitPad(hour)}:${twoDigitPad(minute)}:${twoDigitPad(second)}`
 }
 
 const getLocaleDateTime = (ts: Timestamp): string => {
@@ -266,13 +266,28 @@ class App {
             }
           })
         }
+        // Backup to File
+        if (target.matches('#backupFile')) {
+          this.storage.load().then((log) => {
+            const text = this.backupManager.backup(log);
+            const exportName = 'if-log.json';
+            var dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(text);
+            var downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute('href', dataStr);
+            downloadAnchorNode.setAttribute('download', exportName);
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+          })
+        }
         // Restore
         if (target.matches('#restore')) {
           if (this.global.confirm('Are you sure you want to restore data from the textbox?')) {
             const text = this.$log.value;
             const log = this.backupManager.restore(text);
-            this.storage.update(log).then(() => {
-              this.render(log, getNow());
+            const sortedLog = [...log].sort((a, b) => a.ts - b.ts)
+            this.storage.update(sortedLog).then(() => {
+              this.render(sortedLog, getNow());
             })
           }
         }
@@ -304,17 +319,18 @@ class App {
   async updateLog(ts: Timestamp, newTs: Timestamp): Promise<void> {
     const log = await this.storage.load();
     const newLog = log
-      .map((event: FEvent) => event.ts === ts ? {...event, ts: newTs} : event)
-      .sort((a, b) => a.ts - b.ts);
-    await this.storage.update(newLog);
-    this.render(newLog, getNow());
+      .map((event: FEvent) => event.ts === ts ? {...event, ts: newTs} : event);
+    const sortedLog = [...newLog].sort((a, b) => a.ts - b.ts)
+    await this.storage.update(sortedLog);
+    this.render(sortedLog, getNow());
   }
 
   async deleteLogEntry(ts: Timestamp): Promise<void> {
     const log = await this.storage.load();
-    const newLog = log.flatMap((event: FEvent) => event.ts === ts ? [] : [event]).sort((a, b) => a.ts - b.ts);
-    await this.storage.update(newLog);
-    this.render(newLog, getNow());
+    const newLog = log.flatMap((event: FEvent) => event.ts === ts ? [] : [event]);
+    const sortedLog = [...newLog].sort((a, b) => a.ts - b.ts)
+    await this.storage.update(sortedLog);
+    this.render(sortedLog, getNow());
   }
 
   updateProgress():void {
