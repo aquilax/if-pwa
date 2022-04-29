@@ -1,13 +1,13 @@
 type Timestamp = number;
-type State = "fasting" | "eating";
+type State = 'fasting' | 'eating';
 type FEvent = {
   ts: Timestamp;
   start: State;
 };
 type FEventLog = Array<FEvent>;
 
-const EATING: State = "eating";
-const FASTING: State = "fasting";
+const EATING: State = 'eating';
+const FASTING: State = 'fasting';
 const FASTING_INDEX = 0;
 const EATING_INDEX = 1;
 const ENTRIES_TO_SHOW = 10;
@@ -18,26 +18,49 @@ const fastInterval = [16, 8]; // fast, eat
 const getTs = (d: Date): Timestamp => d.getTime();
 const getNow = (): Timestamp => getTs(new Date());
 const fEvent = (ts: Timestamp, start: State): FEvent => ({ ts, start });
-const twoDigitPad = (num: number) => num < 10 ? "0" + num : num;
-const getTime = (ts: Timestamp) => {
-  const date = new Date(ts);
-  const hour = date.getHours();
-  const minute = date.getMinutes();
-  const second = date.getSeconds();
-  return `${twoDigitPad(hour)}:${twoDigitPad(minute)}:${twoDigitPad(second)}`;
+const twoDigitPad = (num: number) => num < 10 ? '0' + num : num;
+
+const dayOfWeekNames = [
+  'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
+];
+// https://stackoverflow.com/a/52789490/17734
+const formatDate = (date: Date, patternStr = 'yyyy-MM-dd HH:mm:ss'): string => {
+  const day = date.getDate(),
+      month = date.getMonth(),
+      year = date.getFullYear(),
+      hour = date.getHours(),
+      minute = date.getMinutes(),
+      second = date.getSeconds(),
+      milliseconds = date.getMilliseconds(),
+      h = hour % 12,
+      hh = twoDigitPad(h),
+      HH = twoDigitPad(hour),
+      mm = twoDigitPad(minute),
+      ss = twoDigitPad(second),
+      EEEE = dayOfWeekNames[date.getDay()],
+      EEE = EEEE.substring(0, 3),
+      dd = twoDigitPad(day),
+      M = month + 1,
+      MM = twoDigitPad(M),
+      yyyy = year.toString(),
+      yy = yyyy.substring(2, 4)
+  ;
+  return patternStr
+    .replace('hh', hh.toString()).replace('h', h.toString())
+    .replace('HH', HH.toString()).replace('H', hour.toString())
+    .replace('mm', mm.toString()).replace('m', minute.toString())
+    .replace('ss', ss.toString()).replace('s', second.toString())
+    .replace('S', milliseconds.toString())
+    .replace('dd', dd.toString()).replace('d', day.toString())
+    .replace('yyyy', yyyy)
+    .replace('yy', yy)
+    .replace('MM', MM.toString()).replace('M', M.toString())
+    .replace('EEEE', EEEE).replace('EEE', EEE);
 }
 
 const formatTs = (ts: Timestamp): string => {
   const date = new Date(ts);
-
-  const day = date.getDate();
-  const month = date.getMonth();
-  const year = date.getFullYear();
-  const hour = date.getHours();
-  const minute = date.getMinutes();
-  const second = date.getSeconds();
-
-  return `${year}-${twoDigitPad(month+1)}-${twoDigitPad(day)} ${twoDigitPad(hour)}:${twoDigitPad(minute)}:${twoDigitPad(second)}`
+  return formatDate(date, 'yyyy-MM-dd HH:mm:ss');
 }
 
 const getLocaleDateTime = (ts: Timestamp): string => {
@@ -93,17 +116,22 @@ const getTargetEvent = (log: FEventLog, now: Timestamp): FEvent | null => {
 
 const getLogEntry = (template: HTMLTemplateElement, event: FEvent): Element => {
   var clone = template.content.cloneNode(true) as HTMLElement;
+
   const entry = (clone.querySelector('.entry') as HTMLElement)
   entry.dataset.ts = event.ts.toString(10);
   entry.classList.add(event.start);
-  (clone.querySelector('time') as HTMLElement).innerText = formatTs(event.ts);
+
+  const time = (clone.querySelector('time') as HTMLElement)
+  time.innerHTML = formatDate(new Date(event.ts), 'EEE dd<br/>HH:mm');
+  time.setAttribute('datetime', new Date(event.ts).toISOString());
+
   (clone.querySelector('.message') as HTMLElement).innerText = `Started ${event.start}`;
   (clone.querySelector('.timeEdit') as HTMLInputElement).value = getLocaleDateTime(event.ts);
   return clone
 }
 
 const formatEvent = (e: FEvent): string => `${formatTs(e.ts)}\t${e.start}`;
-const formatLog = (log: FEventLog): string =>log.map(formatEvent).join("\n");
+const formatLog = (log: FEventLog): string =>log.map(formatEvent).join('\n');
 
 interface BackupManager {
   backup(log: FEventLog): string;
@@ -145,6 +173,8 @@ class MemoryStorage implements LogStorage {
     this.storage = log;
     return Promise.resolve();
   }
+
+  static isAvailable(): boolean {return true;}
 }
 
 class IndexDBStorage implements LogStorage {
@@ -157,6 +187,8 @@ class IndexDBStorage implements LogStorage {
   update(_log: FEventLog): Promise<void> {
     return Promise.reject('not implemented');
   }
+
+  static isAvailable(): boolean {return false;}
 }
 
 class LocalStorageStorage implements LogStorage {
@@ -178,7 +210,31 @@ class LocalStorageStorage implements LogStorage {
     localStorage.setItem(this.key, content);
     return Promise.resolve();
   }
+  isAvailable(): boolean {return true;}
 }
+
+// class RemoteStorage implements LogStorage {
+//   remoteStorage: RemoteStorage | undefined
+//   client = undefined
+
+//   constructor() {
+//     if (RemoteStorage.isAvailable()) {
+//       const remoteStorage = new RemoteStorage()
+//       this.client = remoteStorage.scope('/if-pwa/');
+//     }
+
+//   }
+//   static isAvailable(): boolean {
+//     return typeof RemoteStorage === 'undefined'
+//   }
+//   load(): Promise<FEventLog> {
+//     this.remoteStorage.
+//   }
+//   update(log: FEventLog): Promise<void> {
+//     throw new Error('Method not implemented.');
+//   }
+
+// }
 
 class App {
   targetEvent: FEvent | null = null;
@@ -196,18 +252,18 @@ class App {
     this.storage = storage;
     this.backupManager = backupManager;
     this.global = global;
-    this.$log = global.document.querySelector<HTMLTextAreaElement>("#log")!;
-    this.$status = global.document.querySelector<HTMLDivElement>("#status")!;
-    this.$progress = global.document.querySelector<HTMLDivElement>("#progress")!;
-    this.$logList = global.document.querySelector<HTMLOListElement>("#logList")!;
-    this.$entryTemplate = global.document.querySelector<HTMLTemplateElement>("#logEntry")!;
+    this.$log = global.document.querySelector<HTMLTextAreaElement>('#log')!;
+    this.$status = global.document.querySelector<HTMLDivElement>('#status')!;
+    this.$progress = global.document.querySelector<HTMLDivElement>('#progress')!;
+    this.$logList = global.document.querySelector<HTMLOListElement>('#logList')!;
+    this.$entryTemplate = global.document.querySelector<HTMLTemplateElement>('#logEntry')!;
     this.updateProgress = this.updateProgress.bind(this);
 
     // start update timer
     this.updateInterval = setInterval(this.updateProgress, 1000);
 
     // Global click handler
-    global.document.addEventListener("click", (e: MouseEvent) => {
+    global.document.addEventListener('click', (e: MouseEvent) => {
       const target = e.target as HTMLButtonElement | null;
       if (target) {
         // Log event

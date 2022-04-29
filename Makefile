@@ -21,5 +21,5 @@ icon_%.png: favicon.svg
 clean: clean_js
 
 clean_js:
-	rm script.js
-	rm sw.js
+	rm -f script.js
+	rm -f sw.js

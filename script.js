@@ -1,6 +1,6 @@
 "use strict";
-const EATING = "eating";
-const FASTING = "fasting";
+const EATING = 'eating';
+const FASTING = 'fasting';
 const FASTING_INDEX = 0;
 const EATING_INDEX = 1;
 const ENTRIES_TO_SHOW = 10;
@@ -9,23 +9,28 @@ const fastInterval = [16, 8]; // fast, eat
 const getTs = (d) => d.getTime();
 const getNow = () => getTs(new Date());
 const fEvent = (ts, start) => ({ ts, start });
-const twoDigitPad = (num) => num < 10 ? "0" + num : num;
-const getTime = (ts) => {
-    const date = new Date(ts);
-    const hour = date.getHours();
-    const minute = date.getMinutes();
-    const second = date.getSeconds();
-    return `${twoDigitPad(hour)}:${twoDigitPad(minute)}:${twoDigitPad(second)}`;
+const twoDigitPad = (num) => num < 10 ? '0' + num : num;
+const dayOfWeekNames = [
+    'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
+];
+// https://stackoverflow.com/a/52789490/17734
+const formatDate = (date, patternStr = 'yyyy-MM-dd HH:mm:ss') => {
+    const day = date.getDate(), month = date.getMonth(), year = date.getFullYear(), hour = date.getHours(), minute = date.getMinutes(), second = date.getSeconds(), milliseconds = date.getMilliseconds(), h = hour % 12, hh = twoDigitPad(h), HH = twoDigitPad(hour), mm = twoDigitPad(minute), ss = twoDigitPad(second), EEEE = dayOfWeekNames[date.getDay()], EEE = EEEE.substring(0, 3), dd = twoDigitPad(day), M = month + 1, MM = twoDigitPad(M), yyyy = year.toString(), yy = yyyy.substring(2, 4);
+    return patternStr
+        .replace('hh', hh.toString()).replace('h', h.toString())
+        .replace('HH', HH.toString()).replace('H', hour.toString())
+        .replace('mm', mm.toString()).replace('m', minute.toString())
+        .replace('ss', ss.toString()).replace('s', second.toString())
+        .replace('S', milliseconds.toString())
+        .replace('dd', dd.toString()).replace('d', day.toString())
+        .replace('yyyy', yyyy)
+        .replace('yy', yy)
+        .replace('MM', MM.toString()).replace('M', M.toString())
+        .replace('EEEE', EEEE).replace('EEE', EEE);
 };
 const formatTs = (ts) => {
     const date = new Date(ts);
-    const day = date.getDate();
-    const month = date.getMonth();
-    const year = date.getFullYear();
-    const hour = date.getHours();
-    const minute = date.getMinutes();
-    const second = date.getSeconds();
-    return `${year}-${twoDigitPad(month + 1)}-${twoDigitPad(day)} ${twoDigitPad(hour)}:${twoDigitPad(minute)}:${twoDigitPad(second)}`;
+    return formatDate(date, 'yyyy-MM-dd HH:mm:ss');
 };
 const getLocaleDateTime = (ts) => {
     const d = new Date(ts);
@@ -79,13 +84,15 @@ const getLogEntry = (template, event) => {
     const entry = clone.querySelector('.entry');
     entry.dataset.ts = event.ts.toString(10);
     entry.classList.add(event.start);
-    clone.querySelector('time').innerText = formatTs(event.ts);
+    const time = clone.querySelector('time');
+    time.innerHTML = formatDate(new Date(event.ts), 'EEE dd<br/>HH:mm');
+    time.setAttribute('datetime', new Date(event.ts).toISOString());
     clone.querySelector('.message').innerText = `Started ${event.start}`;
     clone.querySelector('.timeEdit').value = getLocaleDateTime(event.ts);
     return clone;
 };
 const formatEvent = (e) => `${formatTs(e.ts)}\t${e.start}`;
-const formatLog = (log) => log.map(formatEvent).join("\n");
+const formatLog = (log) => log.map(formatEvent).join('\n');
 class BackupManagerV1 {
     constructor() {
         this.version = 1;
@@ -115,6 +122,7 @@ class MemoryStorage {
         this.storage = log;
         return Promise.resolve();
     }
+    static isAvailable() { return true; }
 }
 class IndexDBStorage {
     constructor() {
@@ -127,6 +135,7 @@ class IndexDBStorage {
     update(_log) {
         return Promise.reject('not implemented');
     }
+    static isAvailable() { return false; }
 }
 class LocalStorageStorage {
     constructor() {
@@ -147,23 +156,43 @@ class LocalStorageStorage {
         localStorage.setItem(this.key, content);
         return Promise.resolve();
     }
+    isAvailable() { return true; }
 }
+// class RemoteStorage implements LogStorage {
+//   remoteStorage: RemoteStorage | undefined
+//   client = undefined
+//   constructor() {
+//     if (RemoteStorage.isAvailable()) {
+//       const remoteStorage = new RemoteStorage()
+//       this.client = remoteStorage.scope('/if-pwa/');
+//     }
+//   }
+//   static isAvailable(): boolean {
+//     return typeof RemoteStorage === 'undefined'
+//   }
+//   load(): Promise<FEventLog> {
+//     this.remoteStorage.
+//   }
+//   update(log: FEventLog): Promise<void> {
+//     throw new Error('Method not implemented.');
+//   }
+// }
 class App {
     constructor(storage, backupManager, global) {
         this.targetEvent = null;
         this.storage = storage;
         this.backupManager = backupManager;
         this.global = global;
-        this.$log = global.document.querySelector("#log");
-        this.$status = global.document.querySelector("#status");
-        this.$progress = global.document.querySelector("#progress");
-        this.$logList = global.document.querySelector("#logList");
-        this.$entryTemplate = global.document.querySelector("#logEntry");
+        this.$log = global.document.querySelector('#log');
+        this.$status = global.document.querySelector('#status');
+        this.$progress = global.document.querySelector('#progress');
+        this.$logList = global.document.querySelector('#logList');
+        this.$entryTemplate = global.document.querySelector('#logEntry');
         this.updateProgress = this.updateProgress.bind(this);
         // start update timer
         this.updateInterval = setInterval(this.updateProgress, 1000);
         // Global click handler
-        global.document.addEventListener("click", (e) => {
+        global.document.addEventListener('click', (e) => {
             const target = e.target;
             if (target) {
                 // Log event
