@@ -74,12 +74,14 @@ const getTargetEvent = (log, now) => {
     }
     return null;
 };
-const getLogEntry = (template, fEvent) => {
+const getLogEntry = (template, event) => {
     var clone = template.content.cloneNode(true);
-    clone.querySelector('.entry').dataset.ts = fEvent.ts.toString(10);
-    clone.querySelector('time').innerText = formatTs(fEvent.ts);
-    clone.querySelector('.message').innerText = `Started ${fEvent.start}`;
-    clone.querySelector('.timeEdit').value = getLocaleDateTime(fEvent.ts);
+    const entry = clone.querySelector('.entry');
+    entry.dataset.ts = event.ts.toString(10);
+    entry.classList.add(event.start);
+    clone.querySelector('time').innerText = formatTs(event.ts);
+    clone.querySelector('.message').innerText = `Started ${event.start}`;
+    clone.querySelector('.timeEdit').value = getLocaleDateTime(event.ts);
     return clone;
 };
 const formatEvent = (e) => `${formatTs(e.ts)}\t${e.start}`;
@@ -314,8 +316,8 @@ class App {
             // clean all children
             this.$logList.replaceChildren();
             // render last ENTRIES_TO_SHOW
-            log.slice(-ENTRIES_TO_SHOW).reverse().forEach(fEvent => {
-                this.$logList.appendChild(getLogEntry(this.$entryTemplate, fEvent));
+            log.slice(-ENTRIES_TO_SHOW).reverse().forEach(event => {
+                this.$logList.appendChild(getLogEntry(this.$entryTemplate, event));
             });
         }
     }
@@ -327,4 +329,3 @@ class App {
 window.addEventListener('load', () => {
     new App(new LocalStorageStorage(), new BackupManagerV1(), window).run();
 });
-//# sourceMappingURL=script.js.map

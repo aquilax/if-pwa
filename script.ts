@@ -91,12 +91,14 @@ const getTargetEvent = (log: FEventLog, now: Timestamp): FEvent | null => {
 };
 
 
-const getLogEntry = (template: HTMLTemplateElement, fEvent: FEvent): Element => {
+const getLogEntry = (template: HTMLTemplateElement, event: FEvent): Element => {
   var clone = template.content.cloneNode(true) as HTMLElement;
-  (clone.querySelector('.entry') as HTMLElement).dataset.ts = fEvent.ts.toString(10);
-  (clone.querySelector('time') as HTMLElement).innerText = formatTs(fEvent.ts);
-  (clone.querySelector('.message') as HTMLElement).innerText = `Started ${fEvent.start}`;
-  (clone.querySelector('.timeEdit') as HTMLInputElement).value = getLocaleDateTime(fEvent.ts);
+  const entry = (clone.querySelector('.entry') as HTMLElement)
+  entry.dataset.ts = event.ts.toString(10);
+  entry.classList.add(event.start);
+  (clone.querySelector('time') as HTMLElement).innerText = formatTs(event.ts);
+  (clone.querySelector('.message') as HTMLElement).innerText = `Started ${event.start}`;
+  (clone.querySelector('.timeEdit') as HTMLInputElement).value = getLocaleDateTime(event.ts);
   return clone
 }
 
@@ -361,8 +363,8 @@ class App {
       // clean all children
       this.$logList.replaceChildren();
       // render last ENTRIES_TO_SHOW
-      log.slice(-ENTRIES_TO_SHOW).reverse().forEach(fEvent => {
-        this.$logList.appendChild(getLogEntry(this.$entryTemplate, fEvent));
+      log.slice(-ENTRIES_TO_SHOW).reverse().forEach(event => {
+        this.$logList.appendChild(getLogEntry(this.$entryTemplate, event));
       });
     }
   }
