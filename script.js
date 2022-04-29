@@ -178,6 +178,14 @@ class App {
                         parent.querySelector('.editEvent').classList.toggle('hidden');
                     }
                 }
+                // Open delete
+                if (target.matches('.delete') || target.matches('.deleteCancel')) {
+                    e.preventDefault();
+                    const parent = target.closest('.entry');
+                    if (parent) {
+                        parent.querySelector('.deleteEvent').classList.toggle('hidden');
+                    }
+                }
                 // Save edit
                 if (target.matches('.editConfirm')) {
                     e.preventDefault();
@@ -193,6 +201,15 @@ class App {
                         }
                     }
                 }
+                // Delete confirm
+                if (target.matches('.deleteConfirm')) {
+                    e.preventDefault();
+                    const parent = target.closest('.entry');
+                    if (parent && parent.dataset.ts) {
+                        const ts = parseInt(parent.dataset.ts, 10);
+                        this.deleteLogEntry(ts);
+                    }
+                }
                 // Backup
                 if (target.matches('#backup')) {
                     this.storage.load().then((log) => {
@@ -206,12 +223,30 @@ class App {
                         }
                     });
                 }
+                // Restore
+                if (target.matches('#restore')) {
+                    if (this.global.confirm('Are you sure you want to restore data from the textbox?')) {
+                        const text = this.$log.value;
+                        const log = this.backupManager.restore(text);
+                        this.storage.update(log).then(() => {
+                            this.render(log, getNow());
+                        });
+                    }
+                }
             }
         });
     }
     async onLogEvent(ts) {
         const log = await this.storage.load();
         const lastEvent = findLastEvent(log, ts);
+        const targetEvent = getTargetEvent(log, ts);
+        if (targetEvent) {
+            if (targetEvent.ts > ts && targetEvent.start === EATING) {
+                if (!this.global.confirm('There is still time left. Are you sure?')) {
+                    return Promise.resolve();
+                }
+            }
+        }
         if (lastEvent) {
             const newStart = lastEvent.start == FASTING ? EATING : FASTING;
             log.push(fEvent(ts, newStart));
@@ -227,6 +262,12 @@ class App {
         const newLog = log
             .map((event) => event.ts === ts ? { ...event, ts: newTs } : event)
             .sort((a, b) => a.ts - b.ts);
+        await this.storage.update(newLog);
+        this.render(newLog, getNow());
+    }
+    async deleteLogEntry(ts) {
+        const log = await this.storage.load();
+        const newLog = log.flatMap((event) => event.ts === ts ? [] : [event]).sort((a, b) => a.ts - b.ts);
         await this.storage.update(newLog);
         this.render(newLog, getNow());
     }
