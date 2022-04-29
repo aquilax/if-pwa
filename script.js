@@ -84,6 +84,24 @@ const getLogEntry = (template, fEvent) => {
 };
 const formatEvent = (e) => `${formatTs(e.ts)}\t${e.start}`;
 const formatLog = (log) => log.map(formatEvent).join("\n");
+class BackupManagerV1 {
+    constructor() {
+        this.version = 1;
+    }
+    backup(log) {
+        return JSON.stringify({
+            version: this.version,
+            events: log.map((e) => ({ ...e, ts: new Date(e.ts).toISOString() }))
+        }, null, 2);
+    }
+    restore(text) {
+        const { version, events } = JSON.parse(text);
+        if (version !== this.version) {
+            throw new Error('incorrect backup version');
+        }
+        return events.map((e) => ({ ...e, ts: getTs(new Date(e.ts)) }));
+    }
+}
 class MemoryStorage {
     constructor() {
         this.storage = [];
@@ -129,9 +147,10 @@ class LocalStorageStorage {
     }
 }
 class App {
-    constructor(storage, global) {
+    constructor(storage, backupManager, global) {
         this.targetEvent = null;
         this.storage = storage;
+        this.backupManager = backupManager;
         this.global = global;
         this.$log = global.document.querySelector("#log");
         this.$status = global.document.querySelector("#status");
@@ -177,7 +196,7 @@ class App {
                 // Backup
                 if (target.matches('#backup')) {
                     this.storage.load().then((log) => {
-                        const text = JSON.stringify(log, null, 2);
+                        const text = this.backupManager.backup(log);
                         const shareData = { text, title: 'IF Export' };
                         if (typeof navigator.share === 'function' && navigator.canShare && navigator.canShare(shareData)) {
                             navigator.share(shareData).catch(console.error);
@@ -220,6 +239,9 @@ class App {
             const x = 100 - Math.floor(msLeft / (msTotal / 100));
             const percent = x > 100 ? 100 : x;
             this.$progress.style.width = `${percent}%`;
+            if (x >= 100) {
+                this.$progress.classList.add('green');
+            }
             this.$progress.setAttribute('title', `${(msLeft / HOUR).toFixed(2)} hours left`);
         }
     }
@@ -246,6 +268,6 @@ class App {
     }
 }
 window.addEventListener('load', () => {
-    new App(new LocalStorageStorage(), window).run();
+    new App(new LocalStorageStorage(), new BackupManagerV1(), window).run();
 });
 //# sourceMappingURL=script.js.map

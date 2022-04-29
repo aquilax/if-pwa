@@ -103,6 +103,30 @@ const getLogEntry = (template: HTMLTemplateElement, fEvent: FEvent): Element => 
 const formatEvent = (e: FEvent): string => `${formatTs(e.ts)}\t${e.start}`;
 const formatLog = (log: FEventLog): string =>log.map(formatEvent).join("\n");
 
+interface BackupManager {
+  backup(log: FEventLog): string;
+  restore(data: string): FEventLog;
+}
+
+class BackupManagerV1 implements BackupManager {
+  version = 1;
+
+  backup(log: FEventLog): string {
+    return JSON.stringify({
+      version: this.version,
+      events: log.map((e: FEvent) => ({...e, ts: new Date(e.ts).toISOString()}))
+    }, null, 2);
+  }
+
+  restore(text: string): FEventLog {
+    const {version, events} = JSON.parse(text);
+    if (version !== this.version) {
+      throw new Error('incorrect backup version');
+    }
+    return events.map((e: FEvent) => ({...e, ts: getTs(new Date(e.ts))}));
+  }
+}
+
 interface LogStorage {
   load(): Promise<FEventLog>;
   update(log: FEventLog): Promise<void>;
@@ -157,6 +181,7 @@ class LocalStorageStorage implements LogStorage {
 class App {
   targetEvent: FEvent | null = null;
   storage: LogStorage;
+  backupManager: BackupManager;
   global: Window;
   $log: HTMLTextAreaElement;
   $status: HTMLDivElement;
@@ -165,8 +190,9 @@ class App {
   $entryTemplate: HTMLTemplateElement;
   updateInterval: number
 
-  constructor(storage: LogStorage, global: Window) {
+  constructor(storage: LogStorage, backupManager: BackupManager, global: Window) {
     this.storage = storage;
+    this.backupManager = backupManager;
     this.global = global;
     this.$log = global.document.querySelector<HTMLTextAreaElement>("#log")!;
     this.$status = global.document.querySelector<HTMLDivElement>("#status")!;
@@ -214,7 +240,7 @@ class App {
         // Backup
         if (target.matches('#backup')) {
           this.storage.load().then((log) => {
-            const text = JSON.stringify(log, null, 2);
+            const text = this.backupManager.backup(log);
             const shareData = {text, title: 'IF Export'};
             if (typeof navigator.share === 'function' && navigator.canShare && navigator.canShare(shareData)) {
               navigator.share(shareData).catch(console.error)
@@ -258,6 +284,9 @@ class App {
       const x = 100 - Math.floor(msLeft/(msTotal/100));
       const percent = x > 100 ? 100 : x
       this.$progress.style.width = `${percent}%`;
+      if (x >=100) {
+        this.$progress.classList.add('green');
+      }
       this.$progress.setAttribute('title', `${(msLeft / HOUR).toFixed(2)} hours left`)
     }
   }
@@ -287,5 +316,5 @@ class App {
 }
 
 window.addEventListener('load', () => {
-  new App(new LocalStorageStorage(), window).run();
+  new App(new LocalStorageStorage(), new BackupManagerV1(), window).run();
 })
