@@ -164,6 +164,19 @@ class App {
                         }
                     }
                 }
+                // Backup
+                if (target.matches('#backup')) {
+                    this.storage.load().then((log) => {
+                        const text = JSON.stringify(log, null, 2);
+                        const shareData = { text, title: 'IF Export' };
+                        if (navigator.share && navigator.canShare()) {
+                            navigator.share(shareData).catch(console.error);
+                        }
+                        else {
+                            this.$log.value = text;
+                        }
+                    });
+                }
             }
         });
     }
@@ -182,7 +195,9 @@ class App {
     }
     async updateLog(ts, newTs) {
         const log = await this.storage.load();
-        const newLog = log.map((event) => event.ts === ts ? { ...event, ts: newTs } : event);
+        const newLog = log
+            .map((event) => event.ts === ts ? { ...event, ts: newTs } : event)
+            .sort((a, b) => a.ts - b.ts);
         await this.storage.update(newLog);
         this.render(newLog, getNow());
     }
