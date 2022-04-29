@@ -412,6 +412,8 @@ class App {
       this.$progress.style.width = `${percent}%`;
       if (x >=100) {
         this.$progress.classList.add('green');
+      } else {
+        this.$progress.classList.remove('green');
       }
       this.$progress.setAttribute('title', `${(msLeft / HOUR).toFixed(2)} hours left`)
     }
