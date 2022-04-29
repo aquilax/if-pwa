@@ -79,7 +79,7 @@ const getLogEntry = (template, fEvent) => {
     clone.querySelector('.entry').dataset.ts = fEvent.ts.toString(10);
     clone.querySelector('time').innerText = formatTs(fEvent.ts);
     clone.querySelector('.message').innerText = `Started ${fEvent.start}`;
-    clone.querySelector('.timeEdit').value = `Started ${getLocaleDateTime(fEvent.ts)}`;
+    clone.querySelector('.timeEdit').value = getLocaleDateTime(fEvent.ts);
     return clone;
 };
 const formatEvent = (e) => `${formatTs(e.ts)}\t${e.start}`;
@@ -179,7 +179,7 @@ class App {
                     this.storage.load().then((log) => {
                         const text = JSON.stringify(log, null, 2);
                         const shareData = { text, title: 'IF Export' };
-                        if (navigator.share && navigator.canShare()) {
+                        if (typeof navigator.share === 'function' && navigator.canShare && navigator.canShare(shareData)) {
                             navigator.share(shareData).catch(console.error);
                         }
                         else {

@@ -10,7 +10,7 @@ index.html:
 script.js: script.ts tsconfig.json
 	tsc
 
-sw.js: workbox-config.js script.js $(ALL_ICONS) index.html
+sw.js: workbox-config.js
 	workbox generateSW $<
 
 images: $(ALL_ICONS)
@@ -22,3 +22,4 @@ clean: clean_js
 
 clean_js:
 	rm script.js
+	rm sw.js

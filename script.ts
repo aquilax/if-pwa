@@ -96,7 +96,7 @@ const getLogEntry = (template: HTMLTemplateElement, fEvent: FEvent): Element => 
   (clone.querySelector('.entry') as HTMLElement).dataset.ts = fEvent.ts.toString(10);
   (clone.querySelector('time') as HTMLElement).innerText = formatTs(fEvent.ts);
   (clone.querySelector('.message') as HTMLElement).innerText = `Started ${fEvent.start}`;
-  (clone.querySelector('.timeEdit') as HTMLInputElement).value = `Started ${getLocaleDateTime(fEvent.ts)}`;
+  (clone.querySelector('.timeEdit') as HTMLInputElement).value = getLocaleDateTime(fEvent.ts);
   return clone
 }
 
@@ -216,7 +216,7 @@ class App {
           this.storage.load().then((log) => {
             const text = JSON.stringify(log, null, 2);
             const shareData = {text, title: 'IF Export'};
-            if (navigator.share && navigator.canShare()) {
+            if (typeof navigator.share === 'function' && navigator.canShare && navigator.canShare(shareData)) {
               navigator.share(shareData).catch(console.error)
             } else {
               this.$log.value = text
