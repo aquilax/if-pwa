@@ -338,6 +338,16 @@ class App {
             downloadAnchorNode.remove();
           })
         }
+        // Backup share file
+        if (target.matches('#backupShareFile')) {
+          this.storage.load().then((log) => {
+            const text = this.backupManager.backup(log);
+            const shareData = {title: 'IF Export', files: [new File([text],"test.txt", {type: "text/plain"})]};
+            if (typeof navigator.share === 'function' && navigator.canShare && navigator.canShare(shareData)) {
+              navigator.share(shareData).catch(console.error)
+            }
+          })
+        }
         // Restore
         if (target.matches('#restore')) {
           if (this.global.confirm('Are you sure you want to restore data from the textbox?')) {
