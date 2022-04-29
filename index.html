@@ -1,8 +1,12 @@
 <!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width initial-scale=1">
   <title>IF Tracker</title>
+  <meta name="theme-color" content="#FCAF3E"/>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icon_192.png">
   <style>
     .statusbar {
       border: 1px solid silver;
@@ -34,4 +38,12 @@
   <button id="backup" disabled>Backup</button>
   <button id="restore" disabled>Restore</button>
   <script src="script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js');
+      });
+    }
+    </script>
 </body>
+</html>

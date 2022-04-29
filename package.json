@@ -1,0 +1,20 @@
+{
+  "name": "if-pwa",
+  "version": "1.0.0",
+  "description": "Yet another Intermittent Fasting PWA tracker",
+  "main": "script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aquilax/if-pwa.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/aquilax/if-pwa/issues"
+  },
+  "homepage": "https://github.com/aquilax/if-pwa#readme"
+}

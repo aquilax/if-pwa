@@ -14,7 +14,8 @@ const HOUR = 3600 * 1000;
 
 const fastInterval = [16, 8]; // fast, eat
 
-const getNow = (): Timestamp => new Date().getTime();;
+const getTs = (d: Date): Timestamp => d.getTime();
+const getNow = (): Timestamp => getTs(new Date());
 const fEvent = (ts: Timestamp, start: State): FEvent => ({ ts, start });
 const twoDigitPad = (num: number) => num < 10 ? "0" + num : num;
 const getTime = (ts: Timestamp) => {
@@ -36,6 +37,11 @@ const formatTs = (ts: Timestamp): string => {
   const second = date.getSeconds();
 
   return `${year}-${twoDigitPad(month)}-${twoDigitPad(day)} ${twoDigitPad(hour)}:${twoDigitPad(minute)}:${twoDigitPad(second)}`
+}
+
+const getLocaleDateTime = (ts: Timestamp): string => {
+  const d = new Date(ts);
+  return (new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString()).slice(0, -8); // remove timezone, ms and s
 }
 
 /**
@@ -143,7 +149,6 @@ class App {
   storage: LogStorage;
   global: Window;
   $log: HTMLTextAreaElement;
-  $logEvent: HTMLButtonElement;
   $status: HTMLDivElement;
   $progress: HTMLDivElement;
   $logList: HTMLOListElement
@@ -153,18 +158,49 @@ class App {
     this.storage = storage;
     this.global = global;
     this.$log = global.document.querySelector<HTMLTextAreaElement>("#log")!;
-    this.$logEvent =
-      global.document.querySelector<HTMLButtonElement>("#logEvent")!;
-    this.$logEvent.addEventListener("click", (e: MouseEvent) => {
-      e.preventDefault();
-      const ts = getNow();
-      this.onLogEvent(ts);
-    });
     this.$status = global.document.querySelector<HTMLDivElement>("#status")!;
     this.$progress = global.document.querySelector<HTMLDivElement>("#progress")!;
     this.$logList = global.document.querySelector<HTMLOListElement>("#loglist")!;
     this.updateProgress = this.updateProgress.bind(this);
-    this.updateInterval = setInterval(this.updateProgress, 10000);
+
+    // start update timer
+    this.updateInterval = setInterval(this.updateProgress, 1000);
+
+    // Global click handler
+    global.document.addEventListener("click", (e: MouseEvent) => {
+      const target = e.target as HTMLButtonElement | null;
+      if (target) {
+        // Log event
+        if (target.matches('#logEvent')) {
+          e.preventDefault();
+          const ts = getNow();
+          return this.onLogEvent(ts);
+        }
+        // Open edit
+        if (target.matches('.edit') || target.matches('.editCancel')) {
+          e.preventDefault();
+          const parent = target.closest('.entry') as HTMLDivElement | null;
+          if (parent) {
+            parent.querySelector('.editEvent')!.classList.toggle('hidden');
+          }
+        }
+        // Save edit
+        if (target.matches('.editConfirm')) {
+          e.preventDefault();
+          const parent = target.closest('.entry') as HTMLDivElement | null;
+          if (parent && parent.dataset.ts) {
+            const ts = parseInt(parent.dataset.ts, 10) as Timestamp;
+            const timeEdit = target.parentElement?.querySelector('.timeEdit') as HTMLInputElement;
+            if (timeEdit) {
+              const newTime = timeEdit.value;
+              const newTs = getTs(new Date(`${newTime}:00`));
+              this.updateLog(ts, newTs)
+                .then(() => parent.querySelector('.editEvent')!.classList.toggle('hidden'))
+            }
+          }
+        }
+      }
+    })
   }
 
   async onLogEvent(ts: Timestamp): Promise<void> {
@@ -177,7 +213,14 @@ class App {
       log.push(fEvent(ts, FASTING));
     }
     await this.storage.update(log);
-    this.render(log);
+    this.render(log, getNow());
+  }
+
+  async updateLog(ts: Timestamp, newTs: Timestamp): Promise<void> {
+    const log = await this.storage.load();
+    const newLog = log.map((event: FEvent) => event.ts === ts ? {...event, ts: newTs} : event)
+    await this.storage.update(newLog);
+    this.render(newLog, getNow());
   }
 
   updateProgress():void {
@@ -193,7 +236,7 @@ class App {
     }
   }
 
-  render(log:FEventLog, ts: Timestamp = getNow()): void {
+  render(log:FEventLog, ts: Timestamp): void {
     this.$log.value = formatLog(log);
     const targetEvent = getTargetEvent(log, ts);
     this.targetEvent = targetEvent;
@@ -201,18 +244,18 @@ class App {
       this.updateProgress(); // manual update after load
       this.$status.innerText = `Next: ${formatEvent(targetEvent)}`;
     }
-    this.$logList.innerHTML = log.map(fEvent =>
-      `<li>
+    this.$logList.innerHTML = log.reverse().map(fEvent =>
+      `<li class="entry" data-ts="${fEvent.ts}">
         <time>${formatTs(fEvent.ts)}</time>
         Started ${fEvent.start}
         <span class="control">
           <button class="edit">✎</button>
-          <button class="delete">✖</button>
+          <button class="delete" disabled>✖</button>
         <span>
         <div class="editEvent hidden">
           <label>
             Edit time:
-            <input type="time" value="${getTime(fEvent.ts)}" />
+            <input class="timeEdit" type="datetime-local" value="${getLocaleDateTime(fEvent.ts)}" />
           </label>
           <button class="editConfirm">✓</button>
           <button class="editCancel">✖</button>
@@ -227,8 +270,10 @@ class App {
 
   async run() {
     const log = await this.storage.load();
-    this.render(log);
+    this.render(log, getNow());
   }
 }
 
-new App(new LocalStorageStorage(), window).run();
+window.addEventListener('load', () => {
+  new App(new LocalStorageStorage(), window).run();
+})

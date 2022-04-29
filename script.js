@@ -5,8 +5,8 @@ const FASTING_INDEX = 0;
 const EATING_INDEX = 1;
 const HOUR = 3600 * 1000;
 const fastInterval = [16, 8]; // fast, eat
-const getNow = () => new Date().getTime();
-;
+const getTs = (d) => d.getTime();
+const getNow = () => getTs(new Date());
 const fEvent = (ts, start) => ({ ts, start });
 const twoDigitPad = (num) => num < 10 ? "0" + num : num;
 const getTime = (ts) => {
@@ -25,6 +25,10 @@ const formatTs = (ts) => {
     const minute = date.getMinutes();
     const second = date.getSeconds();
     return `${year}-${twoDigitPad(month)}-${twoDigitPad(day)} ${twoDigitPad(hour)}:${twoDigitPad(minute)}:${twoDigitPad(second)}`;
+};
+const getLocaleDateTime = (ts) => {
+    const d = new Date(ts);
+    return (new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString()).slice(0, -8); // remove timezone, ms and s
 };
 /**
  * Returns the last event before the now timestamp or null
@@ -121,18 +125,47 @@ class App {
         this.storage = storage;
         this.global = global;
         this.$log = global.document.querySelector("#log");
-        this.$logEvent =
-            global.document.querySelector("#logEvent");
-        this.$logEvent.addEventListener("click", (e) => {
-            e.preventDefault();
-            const ts = getNow();
-            this.onLogEvent(ts);
-        });
         this.$status = global.document.querySelector("#status");
         this.$progress = global.document.querySelector("#progress");
         this.$logList = global.document.querySelector("#loglist");
         this.updateProgress = this.updateProgress.bind(this);
-        this.updateInterval = setInterval(this.updateProgress, 10000);
+        // start update timer
+        this.updateInterval = setInterval(this.updateProgress, 1000);
+        // Global click handler
+        global.document.addEventListener("click", (e) => {
+            const target = e.target;
+            if (target) {
+                // Log event
+                if (target.matches('#logEvent')) {
+                    e.preventDefault();
+                    const ts = getNow();
+                    return this.onLogEvent(ts);
+                }
+                // Open edit
+                if (target.matches('.edit') || target.matches('.editCancel')) {
+                    e.preventDefault();
+                    const parent = target.closest('.entry');
+                    if (parent) {
+                        parent.querySelector('.editEvent').classList.toggle('hidden');
+                    }
+                }
+                // Save edit
+                if (target.matches('.editConfirm')) {
+                    e.preventDefault();
+                    const parent = target.closest('.entry');
+                    if (parent && parent.dataset.ts) {
+                        const ts = parseInt(parent.dataset.ts, 10);
+                        const timeEdit = target.parentElement?.querySelector('.timeEdit');
+                        if (timeEdit) {
+                            const newTime = timeEdit.value;
+                            const newTs = getTs(new Date(`${newTime}:00`));
+                            this.updateLog(ts, newTs)
+                                .then(() => parent.querySelector('.editEvent').classList.toggle('hidden'));
+                        }
+                    }
+                }
+            }
+        });
     }
     async onLogEvent(ts) {
         const log = await this.storage.load();
@@ -145,7 +178,13 @@ class App {
             log.push(fEvent(ts, FASTING));
         }
         await this.storage.update(log);
-        this.render(log);
+        this.render(log, getNow());
+    }
+    async updateLog(ts, newTs) {
+        const log = await this.storage.load();
+        const newLog = log.map((event) => event.ts === ts ? { ...event, ts: newTs } : event);
+        await this.storage.update(newLog);
+        this.render(newLog, getNow());
     }
     updateProgress() {
         const now = getNow();
@@ -159,7 +198,7 @@ class App {
             this.$progress.setAttribute('title', `${(msLeft / HOUR).toFixed(2)} hours left`);
         }
     }
-    render(log, ts = getNow()) {
+    render(log, ts) {
         this.$log.value = formatLog(log);
         const targetEvent = getTargetEvent(log, ts);
         this.targetEvent = targetEvent;
@@ -167,17 +206,17 @@ class App {
             this.updateProgress(); // manual update after load
             this.$status.innerText = `Next: ${formatEvent(targetEvent)}`;
         }
-        this.$logList.innerHTML = log.map(fEvent => `<li>
+        this.$logList.innerHTML = log.reverse().map(fEvent => `<li class="entry" data-ts="${fEvent.ts}">
         <time>${formatTs(fEvent.ts)}</time>
         Started ${fEvent.start}
         <span class="control">
           <button class="edit">✎</button>
-          <button class="delete">✖</button>
+          <button class="delete" disabled>✖</button>
         <span>
         <div class="editEvent hidden">
           <label>
             Edit time:
-            <input type="time" value="${getTime(fEvent.ts)}" />
+            <input class="timeEdit" type="datetime-local" value="${getLocaleDateTime(fEvent.ts)}" />
           </label>
           <button class="editConfirm">✓</button>
           <button class="editCancel">✖</button>
@@ -191,7 +230,10 @@ class App {
     }
     async run() {
         const log = await this.storage.load();
-        this.render(log);
+        this.render(log, getNow());
     }
 }
-new App(new LocalStorageStorage(), window).run();
+window.addEventListener('load', () => {
+    new App(new LocalStorageStorage(), window).run();
+});
+//# sourceMappingURL=script.js.map
