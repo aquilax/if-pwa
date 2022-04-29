@@ -270,33 +270,14 @@ class App {
       this.updateProgress(); // manual update after load
       this.$status.innerText = `Next: ${formatEvent(targetEvent)}`;
     }
-    this.$logList.replaceChildren(); // clean all children
-    log.slice(-ENTRIES_TO_SHOW).reverse().forEach(fEvent => {
-      this.$logList.appendChild(getLogEntry(this.$entryTemplate, fEvent));
-    })
-
-    // this.$logList.innerHTML = log.slice(-ENTRIES_TO_SHOW).reverse().map(fEvent =>
-    //   `<li class="entry" data-ts="${fEvent.ts}">
-    //     <time>${formatTs(fEvent.ts)}</time>
-    //     <span class="message">Started ${fEvent.start}</span>
-    //     <span class="control">
-    //       <button class="edit">✎</button>
-    //       <button class="delete" disabled>✖</button>
-    //     <span>
-    //     <div class="editEvent hidden">
-    //       <label>
-    //         Edit time:
-    //         <input class="timeEdit" type="datetime-local" value="${getLocaleDateTime(fEvent.ts)}" />
-    //       </label>
-    //       <button class="editConfirm">✓</button>
-    //       <button class="editCancel">✖</button>
-    //     </div>
-    //     <div class="deleteEvent hidden">
-    //       Are you sure you want to delete this event?
-    //       <button class="deleteConfirm">✓</button>
-    //       <button class="deleteCancel">✖</button>
-    //     </div>
-    //   </li>`).join("\n")
+    if (log) {
+      // clean all children
+      this.$logList.replaceChildren();
+      // render last ENTRIES_TO_SHOW
+      log.slice(-ENTRIES_TO_SHOW).reverse().forEach(fEvent => {
+        this.$logList.appendChild(getLogEntry(this.$entryTemplate, fEvent));
+      });
+    }
   }
 
   async run() {
