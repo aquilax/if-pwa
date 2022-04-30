@@ -20,7 +20,9 @@
       padding: .2em 0.4em;
     }
     .wrapper {
-      margin: 1em;
+      padding: 0 1em;
+      max-width: 600px;
+      margin: 0 auto;
     }
     .statusbar {
       border: 1px solid silver;
@@ -52,7 +54,7 @@
       gap: .2em;
     }
     .entryRow time {
-      flex-grow: 1;
+      flex-basis: 5em;
       text-align: center;
       font-size: 0.9em;
       font-weight: bold;
@@ -70,24 +72,75 @@
     .fasting {
       background-color: #e7afa5;
     }
+    form fieldset {
+      padding: 0 .4em .4em;
+      margin-bottom: .4em;
+    }
+    .remainingWrapper {
+      text-align: center;
+      font-size: 2rem;
+      font-weight: bold;
+      padding: 1em 0
+    }
+    .lastGoal {
+      display: flex;
+    }
+    .lastGoal > * {
+      flex-grow: 1;
+    }
+    .timeInfo {
+      text-align: center;
+    }
+    h1 {
+      text-align: center;
+      margin: .4em 0;
+    }
   </style>
 </head>
 <body>
   <div class="wrapper">
+    <h1>IF Tracker</h1>
     <div class="statusbar">
       <div id="progress" class="bar"></div>
     </div>
-    <div id="status"></div>
+    <div id="dashboard">
+      <div class="remainingWrapper">
+        Remaining
+        <div id="remaining"></div>
+      </div>
+      <div class="lastGoal">
+        <div class="timeInfo">
+          Last
+          <div id="last"></div>
+        </div>
+        <div class="timeInfo">
+          Goal
+          <div id="goal"></div>
+        </div>
+      </div>
+    </div>
     <br/>
     <button id="logEvent">Log now</button>
     <br/>
     <ol id="logList"></ol>
-    <textarea id="log" rows="10"></textarea>
-    <br/>
-    <button id="backup">Backup</button>
-    <button id="backupShareFile">Backup share file</button>
-    <button id="backupFile">Backup to File</button>
-    <button id="restore">Restore</button>
+    <details>
+      <summary>Maintenance</summary>
+      <form>
+        <fieldset>
+          <legend>Backup</legend>
+          <button id="backup">Backup</button>
+          <button id="backupShareFile">Backup share file</button>
+          <button id="backupFile">Backup to File</button>
+        </fieldset>
+        <fieldset>
+          <legend>Restore</legend>
+          <button id="restore">Restore</button>
+          <button id="restoreFile">Restore from file</button>
+          <input type="file" id="importFile" style="display: none" accept=".json" />
+        </fieldset>
+      </form>
+      <textarea id="log" rows="10"></textarea>
+    </details>
   </div>
   <script src="script.js"></script>
   <script>

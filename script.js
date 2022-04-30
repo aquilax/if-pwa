@@ -184,10 +184,14 @@ class App {
         this.backupManager = backupManager;
         this.global = global;
         this.$log = global.document.querySelector('#log');
-        this.$status = global.document.querySelector('#status');
+        this.$logEvent = global.document.querySelector('#logEvent');
         this.$progress = global.document.querySelector('#progress');
+        this.$remaining = global.document.querySelector('#remaining');
+        this.$last = global.document.querySelector('#last');
+        this.$goal = global.document.querySelector('#goal');
         this.$logList = global.document.querySelector('#logList');
         this.$entryTemplate = global.document.querySelector('#logEntry');
+        this.$importFile = global.document.querySelector('#importFile');
         this.updateProgress = this.updateProgress.bind(this);
         // start update timer
         this.updateInterval = setInterval(this.updateProgress, 1000);
@@ -289,6 +293,33 @@ class App {
                         });
                     }
                 }
+                // Restore from file
+                if (target.matches('#restoreFile')) {
+                    this.$importFile.click();
+                }
+            }
+        });
+        // Restore from file
+        this.$importFile.addEventListener('input', () => {
+            const input = this.$importFile;
+            if (input.files) {
+                if (input.files[0]) {
+                    const file = input.files[0];
+                    const fr = new FileReader();
+                    fr.onload = (e) => {
+                        if (e.target) {
+                            const text = e.target.result;
+                            if (text) {
+                                const log = this.backupManager.restore(text);
+                                const sortedLog = [...log].sort((a, b) => a.ts - b.ts);
+                                this.storage.update(sortedLog).then(() => {
+                                    this.render(sortedLog, getNow());
+                                });
+                            }
+                        }
+                    };
+                    fr.readAsText(file);
+                }
             }
         });
     }
@@ -336,6 +367,9 @@ class App {
             const msTotal = fastInterval[hourIndex] * HOUR;
             const x = 100 - Math.floor(msLeft / (msTotal / 100));
             const percent = x > 100 ? 100 : x;
+            this.$remaining.innerText = `${formatDate(new Date(msLeft), "HH:mm:ss")} [${percent}%]`;
+            this.$last.innerText = formatDate(new Date(this.targetEvent.ts - msTotal), "EEE dd HH:mm");
+            this.$goal.innerText = formatDate(new Date(this.targetEvent.ts), "EEE dd HH:mm");
             this.$progress.style.width = `${percent}%`;
             if (x >= 100) {
                 this.$progress.classList.add('green');
@@ -351,8 +385,8 @@ class App {
         const targetEvent = getTargetEvent(log, ts);
         this.targetEvent = targetEvent;
         if (targetEvent) {
+            this.$logEvent.innerText = targetEvent.start === EATING ? 'Start eating' : 'Start fasting';
             this.updateProgress(); // manual update after load
-            this.$status.innerText = `Next: ${formatEvent(targetEvent)}`;
         }
         if (log) {
             // clean all children
