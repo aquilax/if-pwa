@@ -367,7 +367,7 @@ class App {
             const msTotal = fastInterval[hourIndex] * HOUR;
             const x = 100 - Math.floor(msLeft / (msTotal / 100));
             const percent = x > 100 ? 100 : x;
-            this.$remaining.innerText = `${formatDate(new Date(msLeft), "HH:mm:ss")} [${percent}%]`;
+            this.$remaining.innerText = `${formatDate(new Date(msLeft), "HH:mm:ss")} [${100 - percent}%]`;
             this.$last.innerText = formatDate(new Date(this.targetEvent.ts - msTotal), "EEE dd HH:mm");
             this.$goal.innerText = formatDate(new Date(this.targetEvent.ts), "EEE dd HH:mm");
             this.$progress.style.width = `${percent}%`;
