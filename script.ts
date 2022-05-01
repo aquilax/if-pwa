@@ -246,6 +246,7 @@ class App {
   $logEvent: HTMLButtonElement
   $progress: HTMLDivElement;
   $remaining: HTMLDivElement;
+  $remainingLabel: HTMLDivElement;
   $last: HTMLDivElement;
   $goal: HTMLDivElement;
   $logList: HTMLOListElement
@@ -260,6 +261,7 @@ class App {
     this.$logEvent = global.document.querySelector<HTMLButtonElement>('#logEvent')!;
     this.$progress = global.document.querySelector<HTMLDivElement>('#progress')!;
     this.$remaining = global.document.querySelector<HTMLDivElement>('#remaining')!;
+    this.$remainingLabel = global.document.querySelector<HTMLDivElement>('#remainingLabel')!;
     this.$last = global.document.querySelector<HTMLDivElement>('#last')!;
     this.$goal = global.document.querySelector<HTMLDivElement>('#goal')!;
     this.$logList = global.document.querySelector<HTMLOListElement>('#logList')!;
@@ -445,7 +447,11 @@ class App {
       const x = 100 - Math.floor(msLeft/(msTotal/100));
       const percent = x > 100 ? 100 : x
 
-      this.$remaining.innerText = `${formatDate(new Date(msLeft), "HH:mm:ss")} [${100-percent}%]`;
+      // Decide which time to show extra or remaining
+      const timeToShow = msLeft < 0 ? new Date(now - this.targetEvent.ts) : new Date(msLeft);
+
+      this.$remainingLabel.innerText = msLeft < 0 ? 'Extra' : 'Remaining';
+      this.$remaining.innerText = `${formatDate(timeToShow, "HH:mm:ss")} [${100-percent}%]`;
       this.$last.innerText = formatDate(new Date(this.targetEvent.ts - msTotal), "EEE dd HH:mm")
       this.$goal.innerText = formatDate(new Date(this.targetEvent.ts), "EEE dd HH:mm")
 
