@@ -260,7 +260,6 @@
         const msTotal = fastInterval[hourIndex] * HOUR;
         const x = 100 - Math.floor(msLeft / (msTotal / 100));
         const percent = x > 100 ? 100 : x;
-        const timeToShow = msLeft < 0 ? new Date(now - this.targetEvent.ts) : new Date(msLeft);
         const msToShow = msLeft < 0 ? now - this.targetEvent.ts : msLeft;
         this.$remainingLabel.innerText = msLeft < 0 ? "Extra" : "Remaining";
         this.$remaining.innerText = `${formatDateDiff(msToShow)} [${100 - percent}%]`;
