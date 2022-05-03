@@ -132,6 +132,18 @@ const getLogEntry = (template: HTMLTemplateElement, event: FEvent): Element => {
 
 const formatEvent = (e: FEvent): string => `${formatTs(e.ts)}\t${e.start}`;
 const formatLog = (log: FEventLog): string =>log.map(formatEvent).join('\n');
+const formatDateDiff = (ts: Timestamp): string => {
+  const msInHour = 60*60*1000;
+  const msInMin = 60*1000;
+  const msInSec = 1000;
+  let rem = ts;
+  const h = Math.floor(rem / msInHour);
+  rem = rem - (h * msInHour);
+  const m = Math.floor(rem / msInMin);
+  rem = rem - (m * msInMin);
+  const s = Math.floor(rem / msInSec);
+  return `${twoDigitPad(h)}:${twoDigitPad(m)}:${twoDigitPad(s)}`;
+}
 
 interface BackupManager {
   backup(log: FEventLog): string;
@@ -270,7 +282,7 @@ class App {
     this.updateProgress = this.updateProgress.bind(this);
 
     // start update timer
-    this.updateInterval = setInterval(this.updateProgress, 1000);
+    this.updateInterval = setInterval(this.updateProgress, 1000) as any as number;
 
     // Global click handler
     global.document.addEventListener('click', (e: MouseEvent) => {
@@ -448,10 +460,10 @@ class App {
       const percent = x > 100 ? 100 : x
 
       // Decide which time to show extra or remaining
-      const timeToShow = msLeft < 0 ? new Date(now - this.targetEvent.ts) : new Date(msLeft);
+      const msToShow = msLeft < 0 ? now - this.targetEvent.ts : msLeft;
 
       this.$remainingLabel.innerText = msLeft < 0 ? 'Extra' : 'Remaining';
-      this.$remaining.innerText = `${formatDate(timeToShow, "HH:mm:ss")} [${100-percent}%]`;
+      this.$remaining.innerText = `${formatDateDiff(msToShow)} [${100-percent}%]`;
       this.$last.innerText = formatDate(new Date(this.targetEvent.ts - msTotal), "EEE dd HH:mm")
       this.$goal.innerText = formatDate(new Date(this.targetEvent.ts), "EEE dd HH:mm")
 
