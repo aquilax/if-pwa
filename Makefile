@@ -1,26 +1,25 @@
 .PHONY: clean
 
-DIST := './dist'
+DIST := ./dist
+ASSETS := ./assets
 resolutions := 48 72 96 144 192 512
-ALL_ICONS := $(foreach resolution, $(resolutions), icon_$(resolution).png)
+ALL_ICONS := $(foreach resolution, $(resolutions), $(DIST)/icon_$(resolution).png)
 
-all: clean_js index.html images script.js sw.js
+all: clean copy_assets images $(DIST)/script.js $(DIST)/sw.js
 
-index.html:
+copy_assets:
+	cp $(ASSETS)/* $(DIST)
 
-script.js:
+$(DIST)/script.js:
 	./node_modules/.bin/esbuild src/index.ts --bundle --outfile=$@
 
-sw.js: workbox-config.js
+$(DIST)/sw.js: workbox-config.js
 	workbox generateSW $<
 
 images: $(ALL_ICONS)
 
-icon_%.png: favicon.svg
+$(DIST)/icon_%.png: $(ASSETS)/favicon.svg
 	inkscape $< -w $* -h $* --export-type=png --export-filename=$@
 
-clean: clean_js
-
-clean_js:
-	rm -f script.js
-	rm -f sw.js
+clean:
+	rm -f $(DIST)/*

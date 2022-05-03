@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width initial-scale=1">
+  <title>IF Tracker</title>
+  <meta name="theme-color" content="#FCAF3E"/>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icon_192.png">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    button {
+      padding: .2em 0.4em;
+    }
+    .wrapper {
+      padding: 0 1em;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .statusbar {
+      border: 1px solid silver;
+    }
+    .bar {
+      background-color:coral;
+      height: 1em;
+      width: 0%;
+    }
+    .green {
+      background-color:green;
+    }
+    #log {
+      width:100%;
+    }
+    .hidden {
+      display: none;
+    }
+    #logList{
+      list-style: none;
+    }
+    #logList li {
+      margin-bottom: .4em;
+      padding: .4em;
+    }
+    .entryRow {
+      display: flex;
+      align-items: center;
+      gap: .2em;
+    }
+    .entryRow time {
+      flex-basis: 5em;
+      text-align: center;
+      font-size: 0.9em;
+      font-weight: bold;
+    }
+    #logList li .message{
+      flex-grow: 6;
+    }
+    #logEvent {
+      width: 100%;
+      margin-bottom: 1em;
+    }
+    .eating {
+      background-color: antiquewhite;
+    }
+    .fasting {
+      background-color: #e7afa5;
+    }
+    form fieldset {
+      padding: 0 .4em .4em;
+      margin-bottom: .4em;
+    }
+    .remainingWrapper {
+      text-align: center;
+      font-size: 2rem;
+      font-weight: bold;
+      padding: 1em 0
+    }
+    .lastGoal {
+      display: flex;
+    }
+    .lastGoal > * {
+      flex-grow: 1;
+    }
+    .timeInfo {
+      text-align: center;
+    }
+    h1 {
+      text-align: center;
+      margin: .4em 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <h1>IF Tracker</h1>
+    <div class="statusbar">
+      <div id="progress" class="bar"></div>
+    </div>
+    <div id="dashboard">
+      <div class="remainingWrapper">
+        <div id="remainingLabel">Remaining</div>
+        <div id="remaining"></div>
+      </div>
+      <div class="lastGoal">
+        <div class="timeInfo">
+          Last
+          <div id="last"></div>
+        </div>
+        <div class="timeInfo">
+          Goal
+          <div id="goal"></div>
+        </div>
+      </div>
+    </div>
+    <br/>
+    <button id="logEvent">Log now</button>
+    <br/>
+    <ol id="logList"></ol>
+    <details>
+      <summary>Maintenance</summary>
+      <form>
+        <fieldset>
+          <legend>Backup</legend>
+          <button id="backup">Backup</button>
+          <button id="backupShareFile">Backup share file</button>
+          <button id="backupFile">Backup to File</button>
+        </fieldset>
+        <fieldset>
+          <legend>Restore</legend>
+          <button id="restore">Restore</button>
+          <button id="restoreFile">Restore from file</button>
+          <input type="file" id="importFile" style="display: none" accept=".json" />
+        </fieldset>
+      </form>
+      <textarea id="log" rows="10"></textarea>
+    </details>
+  </div>
+  <script src="script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js');
+      });
+    }
+  </script>
+  <template id="logEntry">
+    <li class="entry" data-ts="">
+      <div class="entryRow">
+        <time></time>
+        <span class="message"></span>
+        <span class="control">
+          <button class="edit" aria-label="Edit" title="Edit">✎</button>
+          <button class="delete" aria-label="Delete" title="Delete">✖</button>
+        <span>
+        </div>
+      <div class="editEvent hidden">
+        <label>
+          └─ Edit time:
+          <input class="timeEdit" type="datetime-local" value="" />
+        </label>
+        <button class="editConfirm" aria-label="Confirm" title="Confirm">✓</button>
+        <button class="editCancel" aria-label="Cancel" title="Cancel">✖</button>
+      </div>
+      <div class="deleteEvent hidden">
+        └─ Are you sure you want to delete this event?
+        <button class="deleteConfirm" aria-label="Confirm" title="Confirm">✓</button>
+        <button class="deleteCancel" aria-label="Cancel" title="Cancel">✖</button>
+      </div>
+    </li>
+  </template>
+</body>
+</html>
