@@ -222,7 +222,7 @@ export class App {
       this.$goal.innerText = formatDate(new Date(this.targetEvent.ts), "EEE dd HH:mm")
 
       this.$progress.style.width = `${percent}%`;
-      if (x >=100) {
+      if (msLeft <= 0) {
         this.$progress.classList.add('green');
       } else {
         this.$progress.classList.remove('green');
