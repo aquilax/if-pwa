@@ -1,13 +1,23 @@
 export type Timestamp = number;
 export type State = 'fasting' | 'eating';
+export type SuccessState = 'success' | 'failure';
 export type FEvent = {
   ts: Timestamp;
   start: State;
 };
+
+export type FDecoratedEvent = FEvent & {
+  duration: Timestamp;
+  successState: SuccessState | null;
+}
+
 export type FEventLog = Array<FEvent>;
+export type FDecoratedEventLog = Array<FDecoratedEvent>;
 
 export const EATING: State = 'eating';
 export const FASTING: State = 'fasting';
+export const S_STATE_SUCCESS: SuccessState = 'success';
+export const S_STATE_FAILURE: SuccessState = 'failure';
 export const FASTING_INDEX = 0;
 export const EATING_INDEX = 1;
 export const ENTRIES_TO_SHOW = 10;
@@ -116,25 +126,28 @@ export const findLastEvent = (log: FEventLog, now: Timestamp): FEvent | null => 
 };
 
 
-export const getLogEntry = (template: HTMLTemplateElement, event: FEvent): Element => {
+export const getLogEntry = (template: HTMLTemplateElement, event: FDecoratedEvent): Element => {
   var clone = template.content.cloneNode(true) as HTMLElement;
 
   const entry = (clone.querySelector('.entry') as HTMLElement)
   entry.dataset.ts = event.ts.toString(10);
   entry.classList.add(event.start);
+  if (event.successState) {
+    entry.classList.add(event.successState);
+  }
 
   const time = (clone.querySelector('time') as HTMLElement)
   time.innerHTML = formatDate(new Date(event.ts), 'EEE dd<br/>HH:mm');
   time.setAttribute('datetime', new Date(event.ts).toISOString());
 
-  (clone.querySelector('.message') as HTMLElement).innerText = `Started ${event.start}`;
+  (clone.querySelector('.message') as HTMLElement).innerText = `[${formatDateDiff(event.duration, true)}] Started ${event.start}`;
   (clone.querySelector('.timeEdit') as HTMLInputElement).value = getLocaleDateTime(event.ts);
   return clone
 }
 
 export const formatEvent = (e: FEvent): string => `${formatTs(e.ts)}\t${e.start}`;
 export const formatLog = (log: FEventLog): string =>log.map(formatEvent).join('\n');
-export const formatDateDiff = (ts: Timestamp): string => {
+export const formatDateDiff = (ts: Timestamp, omitSeconds: boolean = false): string => {
   const msInHour = 60*60*1000;
   const msInMin = 60*1000;
   const msInSec = 1000;
@@ -144,5 +157,25 @@ export const formatDateDiff = (ts: Timestamp): string => {
   const m = Math.floor(rem / msInMin);
   rem = rem - (m * msInMin);
   const s = Math.floor(rem / msInSec);
-  return `${twoDigitPad(h)}:${twoDigitPad(m)}:${twoDigitPad(s)}`;
+  return omitSeconds ? `${twoDigitPad(h)}:${twoDigitPad(m)}` : `${twoDigitPad(h)}:${twoDigitPad(m)}:${twoDigitPad(s)}`;
 }
+
+export const getDuration = (e1:FEvent, e2 :FEvent): Timestamp  => e1.ts - e2.ts;
+
+export const getSuccessState = (e1:FEvent, e2 :FEvent): SuccessState => {
+  const diff = getDuration(e1, e2);
+  if (e1.start === EATING) {
+    // Fasting more than required is success
+    const interval = fastInterval[EATING_INDEX] * HOUR;
+    return diff >= interval ? S_STATE_SUCCESS : S_STATE_FAILURE
+  }
+  // Eating more than required is failure
+  const interval = fastInterval[FASTING_INDEX] * HOUR;
+  return diff <= interval ? S_STATE_SUCCESS : S_STATE_FAILURE
+}
+
+export const fEventsToDecoratedEvents = (log:FEventLog): FDecoratedEventLog =>
+  log.map((e: FEvent, index: number) =>
+    index === 0 ?
+      { ...e, successState: null , duration: 0 } :
+      { ...e, successState: getSuccessState(e, log[index-1]), duration: getDuration(e, log[index-1]) })

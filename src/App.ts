@@ -1,6 +1,6 @@
 import { BackupManager } from "backup/types";
 import { LogStorage } from "storage/types";
-import { EATING, EATING_INDEX, ENTRIES_TO_SHOW, FASTING, FASTING_INDEX, fastInterval, fEvent, FEvent, FEventLog, findLastEvent, formatDate, formatDateDiff, formatLog, getLogEntry, getNow, getTargetEvent, getTs, HOUR, Timestamp } from "utils";
+import { EATING, EATING_INDEX, ENTRIES_TO_SHOW, FASTING, FASTING_INDEX, fastInterval, fEvent, FEvent, FEventLog, fEventsToDecoratedEvents, findLastEvent, formatDate, formatDateDiff, formatLog, getLogEntry, getNow, getTargetEvent, getTs, HOUR, Timestamp } from "utils";
 
 export class App {
   targetEvent: FEvent | null = null;
@@ -243,7 +243,7 @@ export class App {
       // clean all children
       this.$logList.replaceChildren();
       // render last ENTRIES_TO_SHOW
-      log.slice(-ENTRIES_TO_SHOW).reverse().forEach(event => {
+      fEventsToDecoratedEvents(log).slice(-ENTRIES_TO_SHOW).reverse().forEach(event => {
         this.$logList.appendChild(getLogEntry(this.$entryTemplate, event));
       });
     }

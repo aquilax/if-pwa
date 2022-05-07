@@ -2,6 +2,8 @@
   // src/utils.ts
   var EATING = "eating";
   var FASTING = "fasting";
+  var S_STATE_SUCCESS = "success";
+  var S_STATE_FAILURE = "failure";
   var FASTING_INDEX = 0;
   var EATING_INDEX = 1;
   var ENTRIES_TO_SHOW = 10;
@@ -63,16 +65,19 @@
     const entry = clone.querySelector(".entry");
     entry.dataset.ts = event.ts.toString(10);
     entry.classList.add(event.start);
+    if (event.successState) {
+      entry.classList.add(event.successState);
+    }
     const time = clone.querySelector("time");
     time.innerHTML = formatDate(new Date(event.ts), "EEE dd<br/>HH:mm");
     time.setAttribute("datetime", new Date(event.ts).toISOString());
-    clone.querySelector(".message").innerText = `Started ${event.start}`;
+    clone.querySelector(".message").innerText = `[${formatDateDiff(event.duration, true)}] Started ${event.start}`;
     clone.querySelector(".timeEdit").value = getLocaleDateTime(event.ts);
     return clone;
   };
   var formatEvent = (e) => `${formatTs(e.ts)}	${e.start}`;
   var formatLog = (log) => log.map(formatEvent).join("\n");
-  var formatDateDiff = (ts) => {
+  var formatDateDiff = (ts, omitSeconds = false) => {
     const msInHour = 60 * 60 * 1e3;
     const msInMin = 60 * 1e3;
     const msInSec = 1e3;
@@ -82,8 +87,19 @@
     const m = Math.floor(rem / msInMin);
     rem = rem - m * msInMin;
     const s = Math.floor(rem / msInSec);
-    return `${twoDigitPad(h)}:${twoDigitPad(m)}:${twoDigitPad(s)}`;
+    return omitSeconds ? `${twoDigitPad(h)}:${twoDigitPad(m)}` : `${twoDigitPad(h)}:${twoDigitPad(m)}:${twoDigitPad(s)}`;
   };
+  var getDuration = (e1, e2) => e1.ts - e2.ts;
+  var getSuccessState = (e1, e2) => {
+    const diff = getDuration(e1, e2);
+    if (e1.start === EATING) {
+      const interval2 = fastInterval[EATING_INDEX] * HOUR;
+      return diff >= interval2 ? S_STATE_SUCCESS : S_STATE_FAILURE;
+    }
+    const interval = fastInterval[FASTING_INDEX] * HOUR;
+    return diff <= interval ? S_STATE_SUCCESS : S_STATE_FAILURE;
+  };
+  var fEventsToDecoratedEvents = (log) => log.map((e, index) => index === 0 ? { ...e, successState: null, duration: 0 } : { ...e, successState: getSuccessState(e, log[index - 1]), duration: getDuration(e, log[index - 1]) });
 
   // src/App.ts
   var App = class {
@@ -284,7 +300,7 @@
       }
       if (log) {
         this.$logList.replaceChildren();
-        log.slice(-ENTRIES_TO_SHOW).reverse().forEach((event) => {
+        fEventsToDecoratedEvents(log).slice(-ENTRIES_TO_SHOW).reverse().forEach((event) => {
           this.$logList.appendChild(getLogEntry(this.$entryTemplate, event));
         });
       }
