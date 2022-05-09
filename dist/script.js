@@ -93,10 +93,10 @@
   var getSuccessState = (e1, e2) => {
     const diff = getDuration(e1, e2);
     if (e1.start === EATING) {
-      const interval2 = fastInterval[EATING_INDEX] * HOUR;
+      const interval2 = fastInterval[FASTING_INDEX] * HOUR;
       return diff >= interval2 ? S_STATE_SUCCESS : S_STATE_FAILURE;
     }
-    const interval = fastInterval[FASTING_INDEX] * HOUR;
+    const interval = fastInterval[EATING_INDEX] * HOUR;
     return diff <= interval ? S_STATE_SUCCESS : S_STATE_FAILURE;
   };
   var fEventsToDecoratedEvents = (log) => log.map((e, index) => index === 0 ? { ...e, successState: null, duration: 0 } : { ...e, successState: getSuccessState(e, log[index - 1]), duration: getDuration(e, log[index - 1]) });

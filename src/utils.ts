@@ -166,11 +166,11 @@ export const getSuccessState = (e1:FEvent, e2 :FEvent): SuccessState => {
   const diff = getDuration(e1, e2);
   if (e1.start === EATING) {
     // Fasting more than required is success
-    const interval = fastInterval[EATING_INDEX] * HOUR;
+    const interval = fastInterval[FASTING_INDEX] * HOUR;
     return diff >= interval ? S_STATE_SUCCESS : S_STATE_FAILURE
   }
   // Eating more than required is failure
-  const interval = fastInterval[FASTING_INDEX] * HOUR;
+  const interval = fastInterval[EATING_INDEX] * HOUR;
   return diff <= interval ? S_STATE_SUCCESS : S_STATE_FAILURE
 }
 
