@@ -1,3 +1,4 @@
+"use strict";
 (() => {
   // src/utils.ts
   var EATING = "eating";
@@ -90,16 +91,21 @@
     return omitSeconds ? `${twoDigitPad(h)}:${twoDigitPad(m)}` : `${twoDigitPad(h)}:${twoDigitPad(m)}:${twoDigitPad(s)}`;
   };
   var getDuration = (e1, e2) => e1.ts - e2.ts;
+  var getExpectedDuration = (e1) => fastInterval[e1.start === EATING ? FASTING_INDEX : EATING_INDEX] * HOUR;
   var getSuccessState = (e1, e2) => {
     const diff = getDuration(e1, e2);
+    const interval = getExpectedDuration(e1);
     if (e1.start === EATING) {
-      const interval2 = fastInterval[FASTING_INDEX] * HOUR;
-      return diff >= interval2 ? S_STATE_SUCCESS : S_STATE_FAILURE;
+      return diff >= interval ? S_STATE_SUCCESS : S_STATE_FAILURE;
     }
-    const interval = fastInterval[EATING_INDEX] * HOUR;
     return diff <= interval ? S_STATE_SUCCESS : S_STATE_FAILURE;
   };
-  var fEventsToDecoratedEvents = (log) => log.map((e, index) => index === 0 ? { ...e, successState: null, duration: 0 } : { ...e, successState: getSuccessState(e, log[index - 1]), duration: getDuration(e, log[index - 1]) });
+  var fEventsToDecoratedEvents = (log) => log.map((e, index) => index === 0 ? { ...e, successState: null, duration: 0 } : {
+    ...e,
+    successState: getSuccessState(e, log[index - 1]),
+    duration: getDuration(e, log[index - 1]),
+    expectedDuration: getExpectedDuration(e)
+  });
 
   // src/App.ts
   var App = class {

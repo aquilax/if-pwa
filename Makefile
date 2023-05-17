@@ -2,18 +2,19 @@
 
 DIST := ./dist
 ASSETS := ./assets
+SRC := ./src
 resolutions := 48 72 96 144 192 512
 ALL_ICONS := $(foreach resolution, $(resolutions), $(DIST)/icon_$(resolution).png)
 
-all: clean copy_assets images $(DIST)/script.js $(DIST)/sw.js
+all: copy_assets $(DIST)/sw.js
 
 copy_assets:
 	cp $(ASSETS)/* $(DIST)
 
-$(DIST)/script.js:
-	./node_modules/.bin/esbuild src/index.ts --bundle --outfile=$@
+$(DIST)/script.js: $(SRC)/index.ts $(wildcard $(SRC)/*)
+	./node_modules/.bin/esbuild $< --bundle --outfile=$@
 
-$(DIST)/sw.js: workbox-config.js
+$(DIST)/sw.js: workbox-config.js $(DIST)/script.js
 	workbox generateSW $<
 
 images: $(ALL_ICONS)

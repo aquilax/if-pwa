@@ -8,6 +8,7 @@ export type FEvent = {
 
 export type FDecoratedEvent = FEvent & {
   duration: Timestamp;
+  expectedDuration: Timestamp;
   successState: SuccessState | null;
 }
 
@@ -125,7 +126,6 @@ export const findLastEvent = (log: FEventLog, now: Timestamp): FEvent | null => 
   return null;
 };
 
-
 export const getLogEntry = (template: HTMLTemplateElement, event: FDecoratedEvent): Element => {
   var clone = template.content.cloneNode(true) as HTMLElement;
 
@@ -160,17 +160,19 @@ export const formatDateDiff = (ts: Timestamp, omitSeconds: boolean = false): str
   return omitSeconds ? `${twoDigitPad(h)}:${twoDigitPad(m)}` : `${twoDigitPad(h)}:${twoDigitPad(m)}:${twoDigitPad(s)}`;
 }
 
-export const getDuration = (e1:FEvent, e2 :FEvent): Timestamp  => e1.ts - e2.ts;
+const getDuration = (e1:FEvent, e2 :FEvent): Timestamp  => e1.ts - e2.ts;
+
+const getExpectedDuration = (e1:FEvent): Timestamp =>
+  fastInterval[e1.start === EATING ? FASTING_INDEX : EATING_INDEX] * HOUR;
 
 export const getSuccessState = (e1:FEvent, e2 :FEvent): SuccessState => {
   const diff = getDuration(e1, e2);
+  const interval = getExpectedDuration(e1);
   if (e1.start === EATING) {
     // Fasting more than required is success
-    const interval = fastInterval[FASTING_INDEX] * HOUR;
     return diff >= interval ? S_STATE_SUCCESS : S_STATE_FAILURE
   }
   // Eating more than required is failure
-  const interval = fastInterval[EATING_INDEX] * HOUR;
   return diff <= interval ? S_STATE_SUCCESS : S_STATE_FAILURE
 }
 
@@ -178,4 +180,9 @@ export const fEventsToDecoratedEvents = (log:FEventLog): FDecoratedEventLog =>
   log.map((e: FEvent, index: number) =>
     index === 0 ?
       { ...e, successState: null , duration: 0 } :
-      { ...e, successState: getSuccessState(e, log[index-1]), duration: getDuration(e, log[index-1]) })
+      {
+        ...e,
+        successState: getSuccessState(e, log[index-1]),
+        duration: getDuration(e, log[index-1]),
+        expectedDuration: getExpectedDuration(e),
+      })
